@@ -175,7 +175,16 @@ function prepare_image() {
     configure_wifi
 }
 
-function emulate_rpi() {
+function emulate_rpi1_4_4() {
+    qemu-system-arm -M versatilepb -cpu arm1176 -m 256 \
+                    -net nic \
+                    -net user,hostfwd=tcp::${SSH_PORT}-:22 \
+                    -kernel "${PIBOX_IMAGES_CACHE_DIR}/qemu-rpi-kernel/kernel-qemu-4.4.34-jessie" \
+                    -drive format=raw,file=${RASPBIAN_IMAGE}.img \
+                    -append 'root=/dev/sda2 panic=1' &
+}
+
+function emulate_rpi1_4_14() {
     qemu-system-arm -M versatilepb -cpu arm1176 -m 256 \
                     -net nic \
                     -net user,hostfwd=tcp::${SSH_PORT}-:22 \
@@ -198,7 +207,7 @@ function wait_for_ssh() {
         nc -z 127.0.0.1 ${SSH_PORT}
         if [[ $? -eq 0 ]]
         then
-            execute_command_over_ssh 'echo $(hostname) successfully started'
+            execute_command_over_ssh 'echo $(hostname) successfully started: $(uname --all)'
             if [[ ! $? -eq 255 ]]
             then
                 break
@@ -222,8 +231,8 @@ then
     download_images
     prepare_image
 fi
-prepare_image
-emulate_rpi
+
+emulate_rpi1_4_14
 wait_for_ssh
 execute_command_over_ssh "sudo /boot/next_run.sh"
 execute_command_over_ssh "sudo rm /boot/next_run.sh"
