@@ -82,6 +82,16 @@ function configure_ssh() {
 
     sudo touch "$(get_mount_point_boot)/ssh"
 
+    cat >> "${PIBOX_DIR}/next_run.ssh.sh" << EOF
+#!/bin/bash
+sudo chown --recursive $USER:$GROUP ~/.ssh
+EOF
+
+    sudo cp --force "${PIBOX_DIR}/next_run.ssh.sh" "$(get_mount_point_boot)/next_run.ssh.sh"
+    sudo chmod +x "$(get_mount_point_boot)/next_run.ssh.sh"
+
+    rm "${PIBOX_DIR}/next_run.ssh.sh"
+
     unmount_boot_partition
 
     mount_root_partition
@@ -228,7 +238,7 @@ fi
 
 pushd "${PIBOX_DIR}" 1>/dev/null
 
-if [[ ! -f "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" ]]
+if [[ ! -f "${RASPBIAN_IMAGE}.img" ]]
 then
     download_images
     prepare_image
@@ -238,6 +248,8 @@ emulate_rpi1_4_14
 wait_for_ssh
 execute_command_over_ssh "sudo /boot/next_run.sh"
 execute_command_over_ssh "sudo rm /boot/next_run.sh"
+execute_command_over_ssh "sudo /boot/next_run.ssh.sh"
+execute_command_over_ssh "sudo rm /boot/next_run.ssh.sh"
 
 popd 1>/dev/null
 
