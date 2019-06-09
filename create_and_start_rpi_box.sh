@@ -4,7 +4,9 @@
 readonly SSH_PORT=${1:-5022}
 readonly HOSTNAME=${2:-}
 readonly PI_GPU_MEMORY=${3:-16}
-readonly RASPBIAN_IMAGE=2018-11-13-raspbian-stretch-lite
+readonly RASPBIAN_RELEASE_DATE=${4:-2019-04-09}
+readonly RASPBIAN_IMAGE=${5:-2019-04-08-raspbian-stretch-lite}
+readonly RASPBIAN_IMAGE_URL=https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-${RASPBIAN_RELEASE_DATE}/${RASPBIAN_IMAGE}.zip
 
 readonly PROVISIONER_PRIVATE_KEY_FILE=private_key
 readonly PROVISIONER_PUBLIC_KEY_FILE=public_key
@@ -18,7 +20,7 @@ function download_images() {
 
     if [[ ! -f ${RASPBIAN_IMAGE}.zip ]]
     then
-        wget https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2018-11-15/${RASPBIAN_IMAGE}.zip
+        wget ${RASPBIAN_IMAGE_URL}
     fi
 
     if [[ ! -d "qemu-rpi-kernel" ]]
