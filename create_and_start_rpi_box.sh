@@ -203,7 +203,8 @@ function emulate_rpi1_4_14() {
                     -dtb "${PIBOX_IMAGES_CACHE_DIR}/qemu-rpi-kernel/versatile-pb.dtb" \
                     -kernel "${PIBOX_IMAGES_CACHE_DIR}/qemu-rpi-kernel/kernel-qemu-4.14.79-stretch" \
                     -drive format=raw,file=${PIBOX_DIR}/${RASPBIAN_IMAGE}.img \
-                    -append 'root=/dev/sda2 panic=1' &
+                    -append 'root=/dev/sda2 panic=1 console=ttyS0' \
+                    -no-reboot -nographic &
 }
 
 execute_command_over_ssh() {
@@ -250,6 +251,7 @@ execute_command_over_ssh "sudo /boot/next_run.sh"
 execute_command_over_ssh "sudo rm /boot/next_run.sh"
 execute_command_over_ssh "sudo /boot/next_run.ssh.sh"
 execute_command_over_ssh "sudo rm /boot/next_run.ssh.sh"
+execute_command_over_ssh "sudo shutdown -P 0"
 
 popd 1>/dev/null
 
