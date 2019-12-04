@@ -1,0 +1,8 @@
+/usr/bin/qemu-system-arm -M virt  -m 256 \
+                    -net nic \
+                    -net user,hostfwd=tcp::5022-:22 \
+                    -dtb /home/user19/Projects/wnklr/devices/garden.vagrant-base-box/qemu-rpi-kernel/versatile-pb.dtb \
+                    -kernel /home/user19/Projects/wnklr/devices/garden.vagrant-base-box/qemu-rpi-kernel/kernel-qemu-4.14.79-stretch \
+                    -hda /home/user19/Projects/wnklr/devices/garden.vagrant-base-box/2018-11-13-raspbian-stretch-lite.img \
+                    -device virtio-blk-pci,scsi=off,bus=pci.0,addr=0x4,drive=drive-virtio-disk0,id=virtio-disk0,bootindex=1 
+                    -append 'root=/dev/sda2 panic=1'

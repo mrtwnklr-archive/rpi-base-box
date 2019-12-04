@@ -1,0 +1,58 @@
+<domain type='qemu' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>raspbian</name>
+  <uuid>dde875c8-d86f-4aa2-abce-b76ee5cc1032</uuid>
+  <memory unit='KiB'>262144</memory>
+  <currentMemory unit='KiB'>262144</currentMemory>
+  <vcpu placement='static'>1</vcpu>
+  <resource>
+    <partition>/machine</partition>
+  </resource>
+  <os>
+    <type arch='armv7l' machine='versatilepb'>hvm</type>
+    <kernel>/home/user19/Projects/wnklr/devices/garden.vagrant-base-box/qemu-rpi-kernel/kernel-qemu-4.14.79-stretch</kernel>
+    <cmdline>root=/dev/sda2 panic=1 rootfstype=ext4 console=ttyAMA0</cmdline>
+    <boot dev='hd'/>
+  </os>
+  <clock offset='utc'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-arm</emulator>
+    <disk type='file' device='disk'>
+      <!--driver name='qemu' type='qcow2'/-->
+      <driver name='qemu' type='raw'/>
+      <!--source file='/var/lib/libvirt/images/2013-09-10-wheezy-raspbian.qcow2'/-->
+      <source file='/home/user19/Projects/wnklr/devices/garden.vagrant-base-box/2018-11-13-raspbian-stretch-lite.img'/>
+      <target dev='vda' bus='virtio'/>
+      <!--target dev='hda' bus='scsi'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='2'/-->
+    </disk>
+    <controller type='usb' index='0'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x2'/>
+    </controller>
+    <controller type='pci' index='0' model='pci-root'/>
+    <controller type='scsi' index='0'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x04' function='0x0'/>
+    </controller>
+    <!--interface type='network'>
+      <mac address='52:54:00:50:2f:ce'/>
+      <source network='default'/>
+      <model type='smc91c111'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0'/>
+    </interface-->
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <sound model='es1370'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </sound>
+  </devices>
+  <qemu:commandline>
+    <qemu:arg value='-cpu'/>
+    <qemu:arg value='arm1176'/>
+  </qemu:commandline>
+</domain>

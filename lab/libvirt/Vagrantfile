@@ -1,0 +1,39 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+#
+# https://stackoverflow.com/questions/46380695/unable-to-add-rasbian-image-to-vagrant-libvirt-virtual-machine
+#
+# sudo apt-get install vagrant-libvirt
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'libvirt'
+
+Vagrant.configure("2") do |config|
+      config.vm.define "rpi" do |rpi|
+            # Create rpi.vm
+            rpi.vm.hostname = "rpi"
+            rpi.vm.box_url = File.join(Dir.pwd, "2018-11-13-raspbian-stretch-lite.img")
+            rpi.vm.box = "pi"
+            rpi.vm.provider :libvirt do |v|
+                  v.driver = 'qemu'
+                  v.random_hostname = true
+                  v.connect_via_ssh = false
+                  v.memory = 1024
+                  v.cpus = 1
+                  v.volume_cache = 'none'
+                  v.storage_pool_name = "vagrant"
+                  v.kernel = File.join(Dir.pwd, "qemu-rpi-kernel/kernel-qemu-4.14.79-stretch")
+                  v.initrd = File.join(Dir.pwd, "qemu-rpi-kernel/versatile-pb.dtb")
+                  v.machine_type = 'virt'
+                  v.machine_arch = 'armv7l'
+                  v.cpu_mode = 'custom'
+                  v.cpu_model = 'cortex-a15'
+                  v.cpu_fallback = 'allow'
+                  v.cmd_line = 'rw earlyprintk loglevel=8 console=ttyAMA0,115200n8 rootwait root=/dev/vda2'
+                  v.graphics_type = 'none'
+                  v.disk_bus = 'virtio'
+                  v.nic_model_type = 'virtio'
+                  v.features = ["apic","gic version='2'"]
+            end
+      end
+end
