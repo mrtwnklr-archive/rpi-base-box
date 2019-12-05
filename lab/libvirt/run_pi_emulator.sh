@@ -1,12 +1,13 @@
 #!/bin/bash
 
+readonly RASPBIAN_LITE_VERSION=2019-09-30
 readonly RASPB7IAN_IMAGE=2019-09-26-raspbian-buster-lite
 readonly QEMU_KERNEL=kernel-qemu-4.19.50-buster
 
 function download_image() {
     if [[ ! -f "${RASPBIAN_IMAGE}.zip" ]]
     then
-        wget https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2018-11-15/${RASPBIAN_IMAGE}.zip
+        wget https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-${RASPBIAN_LITE_VERSION}/${RASPBIAN_IMAGE}.zip
     fi
 }
 
