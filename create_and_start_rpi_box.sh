@@ -4,8 +4,8 @@
 readonly SSH_PORT=${1:-5022}
 readonly HOSTNAME=${2:-}
 readonly PI_GPU_MEMORY=${3:-16}
-readonly RASPBIAN_RELEASE_DATE=${4:-2019-04-09}
-readonly RASPBIAN_IMAGE=${5:-2019-04-08-raspbian-stretch-lite}
+readonly RASPBIAN_RELEASE_DATE=${4:-2019-09-30}
+readonly RASPBIAN_IMAGE=${5:-2019-09-26-raspbian-buster-lite}
 readonly RASPBIAN_IMAGE_URL=https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-${RASPBIAN_RELEASE_DATE}/${RASPBIAN_IMAGE}.zip
 
 readonly PROVISIONER_PRIVATE_KEY_FILE=private_key
