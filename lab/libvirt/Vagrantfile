@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
       config.vm.define "rpi" do |rpi|
             # Create rpi.vm
             rpi.vm.hostname = "rpi"
-            rpi.vm.box_url = File.join(Dir.pwd, "2018-11-13-raspbian-stretch-lite.img")
+            rpi.vm.box_url = File.join(Dir.pwd, "2019-09-26-raspbian-buster-lite.img")
             rpi.vm.box = "pi"
             rpi.vm.provider :libvirt do |v|
                   v.driver = 'qemu'
@@ -22,7 +22,7 @@ Vagrant.configure("2") do |config|
                   v.cpus = 1
                   v.volume_cache = 'none'
                   v.storage_pool_name = "vagrant"
-                  v.kernel = File.join(Dir.pwd, "qemu-rpi-kernel/kernel-qemu-4.14.79-stretch")
+                  v.kernel = File.join(Dir.pwd, "qemu-rpi-kernel/kernel-qemu-4.19.50-buster")
                   v.initrd = File.join(Dir.pwd, "qemu-rpi-kernel/versatile-pb.dtb")
                   v.machine_type = 'virt'
                   v.machine_arch = 'armv7l'
