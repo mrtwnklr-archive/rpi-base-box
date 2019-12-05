@@ -1,7 +1,7 @@
 #!/bin/bash
 
 readonly RASPBIAN_LITE_VERSION=2019-09-30
-readonly RASPB7IAN_IMAGE=2019-09-26-raspbian-buster-lite
+readonly RASPBIAN_IMAGE=2019-09-26-raspbian-buster-lite
 readonly QEMU_KERNEL=kernel-qemu-4.19.50-buster
 
 function download_image() {
