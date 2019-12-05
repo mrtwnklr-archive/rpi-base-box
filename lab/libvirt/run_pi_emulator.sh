@@ -1,6 +1,7 @@
 #!/bin/bash
 
-readonly RASPBIAN_IMAGE=2018-11-13-raspbian-stretch-lite
+readonly RASPB7IAN_IMAGE=2019-09-26-raspbian-buster-lite
+readonly QEMU_KERNEL=kernel-qemu-4.19.50-buster
 
 function download_image() {
     if [[ ! -f "${RASPBIAN_IMAGE}.zip" ]]
@@ -36,7 +37,7 @@ function emulate_rpi() {
                     -net nic \
                     -net user,hostfwd=tcp::5022-:22 \
                     -dtb qemu-rpi-kernel/versatile-pb.dtb \
-                    -kernel qemu-rpi-kernel/kernel-qemu-4.14.79-stretch \
+                    -kernel qemu-rpi-kernel/${QEMU_KERNEL} \
                     -hda ${RASPBIAN_IMAGE}.img \
                     -append 'root=/dev/sda2 panic=1' &
 
