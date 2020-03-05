@@ -36,7 +36,7 @@ function prepare_image() {
 function emulate_rpi() {
     qemu-system-arm -M versatilepb -cpu arm1176 -m 256 \
                     -net nic \
-                    -net user,hostfwd=tcp::5022-:22 \
+                    -net user,hostfwd=tcp::5023-:22 \
                     -dtb qemu-rpi-kernel/versatile-pb.dtb \
                     -kernel qemu-rpi-kernel/${QEMU_KERNEL} \
                     -hda ${RASPBIAN_IMAGE}.img \
@@ -45,10 +45,10 @@ function emulate_rpi() {
     while :
     do
         sleep 5
-        nc -z 127.0.0.1 5022
+        nc -z 127.0.0.1 5023
         if [[ $? -eq 0 ]]
         then
-            ssh -p 5022 pi@127.0.0.1
+            ssh -p 5023 pi@127.0.0.1
             if [[ ! $? -eq 255 ]]
             then
                 break
@@ -58,7 +58,7 @@ function emulate_rpi() {
         fi
     done
 
-    ssh-copy-id -p 5022 pi@127.0.0.1
+    ssh-copy-id -p 5023 pi@127.0.0.1
 }
 
 function emulate_rpi_libvirt() {
@@ -82,10 +82,15 @@ function emulate_rpi_libvirt() {
 #    --video vga \
 #    --graphics spice \
 #    --rng device=/dev/urandom,model=virtio \
-#    --boot 'dtb=qemu-rpi-kernel/versatile-pb.dtb,kernel=qemu-rpi-kernel/kernel-qemu-4.14.79-stretch,kernel_args=root=/dev/vda2 panic=1' \
+#    --boot 'dtb=qemu-rpi-kernel/versatile-pb.dtb,kernel=qemu-rpi-kernel/kernel-qemu-4.19.50-buster,kernel_args=root=/dev/vda2 panic=1' \
 #    --events on_reboot=destroy
 
+    # sudo cp qemu-rpi-kernel/versatile-pb.dtb /var/lib/libvirt/images/
     # sudo cp ${RASPBIAN_IMAGE}.img /var/lib/libvirt/images/
+    # sudo cp qemu-rpi-kernel/${QEMU_KERNEL} /var/lib/libvirt/images/
+
+    virsh destroy pi3
+    virsh undefine pi3
 
     sudo virt-install \
     --name pi3 \
@@ -96,17 +101,19 @@ function emulate_rpi_libvirt() {
     --import \
     --disk /var/lib/libvirt/images/${RASPBIAN_IMAGE}.img,format=raw,bus=virtio \
     --network user,model=virtio \
-    --video vga \
-    --graphics spice \
     --rng device=/dev/urandom,model=virtio \
-    --boot 'dtb=/var/lib/libvirt/images/versatile-pb.dtb,kernel=/var/lib/libvirt/images/kernel-qemu-4.14.79-stretch,kernel_args=root=/dev/vda2 panic=1 console=ttyAMA0' \
-    --events on_reboot=destroy,on_poweroff=destroy --check all=off
+    --nographics \
+    --boot 'dtb=/var/lib/libvirt/images/versatile-pb.dtb,kernel=/var/lib/libvirt/images/kernel-qemu-4.19.50-buster,kernel_args=root=/dev/vda2 panic=1 console=ttyS0 serial' \
+    --events on_reboot=destroy,on_poweroff=destroy \
+    --check all=off
 
+#    --video vga \
+#    --graphics spice \
 }
 
 download_image
 prepare_image
-emulate_rpi
+emulate_rpi_libvirt
 
 # # apt-get update
 # # echo “StrictHostKeyChecking=no” >> /etc/ssh/ssh_config

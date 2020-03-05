@@ -207,6 +207,19 @@ function emulate_rpi1_4_14() {
                     -no-reboot -nographic &
 }
 
+function emulate_rpi1_4_19() {
+    echo ${PIBOX_IMAGES_CACHE_DIR}
+    echo ${PIBOX_DIR}
+    qemu-system-arm -M versatilepb -cpu arm1176 -m 256 \
+                    -net nic \
+                    -net user,hostfwd=tcp::${SSH_PORT}-:22 \
+                    -dtb "${PIBOX_IMAGES_CACHE_DIR}/qemu-rpi-kernel/versatile-pb.dtb" \
+                    -kernel "${PIBOX_IMAGES_CACHE_DIR}/qemu-rpi-kernel/kernel-qemu-4.19.50-buster" \
+                    -drive format=raw,file=${PIBOX_DIR}/${RASPBIAN_IMAGE}.img \
+                    -append 'root=/dev/sda2 panic=1 console=ttyS0' \
+                    -no-reboot -nographic &
+}
+
 execute_command_over_ssh() {
     local command="${1}" ; shift
 
@@ -245,8 +258,9 @@ then
     prepare_image
 fi
 
-emulate_rpi1_4_14
+emulate_rpi1_4_19
 wait_for_ssh
+execute_command_over_ssh "sudo ls -la /boot/"
 execute_command_over_ssh "sudo /boot/next_run.sh"
 execute_command_over_ssh "sudo rm /boot/next_run.sh"
 execute_command_over_ssh "sudo /boot/next_run.ssh.sh"
