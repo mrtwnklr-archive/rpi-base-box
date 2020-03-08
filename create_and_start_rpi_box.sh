@@ -13,6 +13,10 @@ readonly PROVISIONER_PUBLIC_KEY_FILE=public_key
 readonly PIBOX_IMAGES_CACHE_DIR=~/.cache/pibox
 readonly PIBOX_DIR=$(pwd)/.pibox/${HOSTNAME:-rpi}
 
+function check_depencendies() {
+    which partx 1>/dev/null || (echo ERROR: partx is not installed ; exit 1)
+}
+
 function download_images() {
     mkdir --parents "${PIBOX_IMAGES_CACHE_DIR}"
     
@@ -41,12 +45,14 @@ function mount_partition() {
     local partition_marker="${1}" ; shift
     local mount_point="${1}" ; shift
 
-    SECTOR=$( fdisk --list "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" | grep "${partition_marker}" | awk '{ print $2 }' )
-    OFFSET=$(( SECTOR * 512 ))
+    sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img"
+    local device_name=$(sudo losetup --show --find "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
+    sudo partx --add "${device_name}"
+    lsblk --list "${device_name}" --output NAME,LABEL --noheadings | grep "${partition_marker}$"
+    local partition_device_name=$(lsblk --list "${device_name}" --output NAME,LABEL --noheadings | grep "${partition_marker}$" | cut -d ' ' -f 1)
 
     mkdir --parents "${mount_point}"
-
-    sudo mount "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" --options offset=$OFFSET "${mount_point}"
+    sudo mount "/dev/${partition_device_name}" "${mount_point}"
 }
 
 function get_mount_point_boot() {
@@ -54,13 +60,18 @@ function get_mount_point_boot() {
 }
 
 function mount_boot_partition() {
-    mount_partition "FAT32" "$(get_mount_point_boot)"
+    mount_partition "boot" "$(get_mount_point_boot)"
 }
 
 function unmount_boot_partition() {
     sudo umount "$(get_mount_point_boot)"
 
     sudo rm -rf "$(get_mount_point_boot)"
+
+    # WARNING : detached device could still be in use for root partition (if different mount_..._partition-calls overlap)
+    # TODO : refactor to always mount both partitions?
+    local device_name=$(sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
+    sudo losetup --detach "${device_name}"
 }
 
 function get_mount_point_root() {
@@ -68,13 +79,18 @@ function get_mount_point_root() {
 }
 
 function mount_root_partition() {
-    mount_partition "Linux" "$(get_mount_point_root)"
+    mount_partition "rootfs" "$(get_mount_point_root)"
 }
 
 function unmount_root_partition() {
     sudo umount "$(get_mount_point_root)"
 
     sudo rm -rf "$(get_mount_point_root)"
+
+    # WARNING : detached device could still be in use for root partition (if different mount_..._partition-calls overlap)
+    # TODO : refactor to always mount both partitions?
+    local device_name=$(sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
+    sudo losetup --detach "${device_name}"
 }
 
 function configure_ssh() {
@@ -257,6 +273,7 @@ pushd "${PIBOX_DIR}" 1>/dev/null
 if [[ ! -f "${RASPBIAN_IMAGE}.img" ]]
 then
     download_images
+    check_depencendies
     prepare_image
 fi
 
