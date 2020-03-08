@@ -43,15 +43,19 @@ Vagrant.configure("2") do |config|
 
   config.ssh.username = "pi"
   config.ssh.insert_key = false
-  config.ssh.password = "raspberry"
+  #config.ssh.password = "raspberry"
   config.ssh.port = 5022
+  config.ssh.private_key_path = "/home/marty/Dokumente/Repos/wnklr/devices/rpi-base-box/.pibox/section-f-main/private_key"
   config.vm.network :forwarded_port, id: "ssh", guest: 5022, host: 2222
 
   config.vm.provider "docker" do |d|
     d.image = "lukechilds/dockerpi"
     d.has_ssh = true
     # SSH muss bereits im Image aktiviert sein
-    d.volumes = [ "/home/marty/Dokumente/Repos/wnklr/devices/rpi-base-box/.pibox/rpi/2019-09-26-raspbian-buster-lite.img:/sdcard/filesystem.img" ]
+    # TODO : how to use local path?
+    #d.volumes = [ "/home/marty/Dokumente/Repos/wnklr/devices/rpi-base-box/.pibox/rpi/2019-09-26-raspbian-buster-lite.img:/sdcard/filesystem.img" ]
+    # boostrapped with https://github.com/rfairley/rpi-bootstrap.git:
+    d.volumes = [ "/home/marty/Dokumente/Repos/forks/rpi-bootstrap/work/2019-09-26-raspbian-buster-lite.out.img:/sdcard/filesystem.img"]
 #    d.env = {
 #      SSH_PORT: 22
 #    }
