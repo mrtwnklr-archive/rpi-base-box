@@ -41,7 +41,7 @@ function mount_partition() {
     local partition_marker="${1}" ; shift
     local mount_point="${1}" ; shift
 
-    SECTOR=$( fdisk --list "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" | grep ${partition_marker} | awk '{ print $2 }' )
+    SECTOR=$( fdisk --list "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" | grep "${partition_marker}" | awk '{ print $2 }' )
     OFFSET=$(( SECTOR * 512 ))
 
     mkdir --parents "${mount_point}"
@@ -129,6 +129,7 @@ function configure_hostname() {
     then
         mount_boot_partition
 
+# TODO : hostnamectl und systemctl sind nicht notwendig, wenn die Dateien bereits vor dem Starten1 in der root-Partition verändert werden
         cat >> "${PIBOX_DIR}/next_run.sh" << EOF
 #!/bin/bash
 if [[ "${HOSTNAME}" != "\$(cat /etc/hostname)" ]]
@@ -140,6 +141,7 @@ then
 fi
 EOF
 
+# TODO : Statische IP reservieren
         sudo cp --force "${PIBOX_DIR}/next_run.sh" "$(get_mount_point_boot)/next_run.sh"
         sudo chmod +x "$(get_mount_point_boot)/next_run.sh"
 
