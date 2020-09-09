@@ -13,10 +13,6 @@ readonly PROVISIONER_PUBLIC_KEY_FILE=public_key
 readonly PIBOX_IMAGES_CACHE_DIR=~/.cache/pibox
 readonly PIBOX_DIR=$(pwd)/.pibox/${HOSTNAME:-rpi}
 
-function check_depencendies() {
-    which partx 1>/dev/null || (echo ERROR: partx is not installed ; exit 1)
-}
-
 function download_images() {
     mkdir --parents "${PIBOX_IMAGES_CACHE_DIR}"
     
@@ -45,17 +41,12 @@ function mount_partition() {
     local partition_marker="${1}" ; shift
     local mount_point="${1}" ; shift
 
-    ls -lah "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img"
-    sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img"
-    local device_name=$(sudo losetup --show --find "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
-    echo "device_name: ${device_name}"
-    sudo partx --add "${device_name}"
-    lsblk --list "${device_name}" --output NAME,LABEL --noheadings | grep "${partition_marker}$"
-    local partition_device_name=$(lsblk --list "${device_name}" --output NAME,LABEL --noheadings | grep "${partition_marker}$" | cut -d ' ' -f 1)
-    echo "partition_device_name: ${partition_device_name}"
+    SECTOR=$( fdisk --list "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" | grep "${partition_marker}" | awk '{ print $2 }' )
+    OFFSET=$(( SECTOR * 512 ))
 
     mkdir --parents "${mount_point}"
-    sudo mount "/dev/${partition_device_name}" "${mount_point}"
+
+    sudo mount "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img" --options offset=$OFFSET "${mount_point}"
 }
 
 function get_mount_point_boot() {
@@ -63,18 +54,13 @@ function get_mount_point_boot() {
 }
 
 function mount_boot_partition() {
-    mount_partition "boot" "$(get_mount_point_boot)"
+    mount_partition "FAT32" "$(get_mount_point_boot)"
 }
 
 function unmount_boot_partition() {
     sudo umount "$(get_mount_point_boot)"
 
     sudo rm -rf "$(get_mount_point_boot)"
-
-    # WARNING : detached device could still be in use for root partition (if different mount_..._partition-calls overlap)
-    # TODO : refactor to always mount both partitions?
-    local device_name=$(sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
-    sudo losetup --detach "${device_name}"
 }
 
 function get_mount_point_root() {
@@ -82,18 +68,13 @@ function get_mount_point_root() {
 }
 
 function mount_root_partition() {
-    mount_partition "rootfs" "$(get_mount_point_root)"
+    mount_partition "Linux" "$(get_mount_point_root)"
 }
 
 function unmount_root_partition() {
     sudo umount "$(get_mount_point_root)"
 
     sudo rm -rf "$(get_mount_point_root)"
-
-    # WARNING : detached device could still be in use for root partition (if different mount_..._partition-calls overlap)
-    # TODO : refactor to always mount both partitions?
-    local device_name=$(sudo losetup --associated "${PIBOX_DIR}/${RASPBIAN_IMAGE}.img")
-    sudo losetup --detach "${device_name}"
 }
 
 function configure_ssh() {
@@ -101,36 +82,36 @@ function configure_ssh() {
 
     sudo touch "$(get_mount_point_boot)/ssh"
 
-#    cat >> "${PIBOX_DIR}/next_run.ssh.sh" << EOF
-##!/bin/bash
-#sudo chown --recursive $USER:$GROUP ~/.ssh
-#EOF
-#
-#    sudo cp --force "${PIBOX_DIR}/next_run.ssh.sh" "$(get_mount_point_boot)/next_run.ssh.sh"
-#    sudo chmod +x "$(get_mount_point_boot)/next_run.ssh.sh"
-#
-#    rm "${PIBOX_DIR}/next_run.ssh.sh"
+    cat >> "${PIBOX_DIR}/next_run.ssh.sh" << EOF
+#!/bin/bash
+sudo chown --recursive $USER:$GROUP ~/.ssh
+EOF
+
+    sudo cp --force "${PIBOX_DIR}/next_run.ssh.sh" "$(get_mount_point_boot)/next_run.ssh.sh"
+    sudo chmod +x "$(get_mount_point_boot)/next_run.ssh.sh"
+
+    rm "${PIBOX_DIR}/next_run.ssh.sh"
 
     unmount_boot_partition
 
-#    mount_root_partition
-#
-#    if [[ ! -f "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}" ]]
-#    then
-#        # create new public key
-#        local comment="rpi_provisioner_$(date +%F_%H-%M-%S)@wnklr.net"
-#        ssh-keygen -b 4096 -t rsa -C "${comment}" -f "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}" -P ''
-#        mv "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}.pub" "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}"
-#    fi
-#
-#    sudo mkdir --parents "$(get_mount_point_root)/home/pi/.ssh"
-#    if [[ -z $(grep --file "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}" "$(get_mount_point_root)/home/pi/.ssh/authorized_keys" 2>/dev/null) ]]
-#    then
-#        # transfer new public key
-#        cat "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}" | sudo tee "$(get_mount_point_root)/home/pi/.ssh/authorized_keys"
-#    fi
-#
-#    unmount_root_partition
+    mount_root_partition
+
+    if [[ ! -f "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}" ]]
+    then
+        # create new public key
+        local comment="rpi_provisioner_$(date +%F_%H-%M-%S)@wnklr.net"
+        ssh-keygen -b 4096 -t rsa -C "${comment}" -f "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}" -P ''
+        mv "${PIBOX_DIR}/${PROVISIONER_PRIVATE_KEY_FILE}.pub" "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}"
+    fi
+
+    sudo mkdir --parents "$(get_mount_point_root)/home/pi/.ssh"
+    if [[ -z $(grep --file "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}" "$(get_mount_point_root)/home/pi/.ssh/authorized_keys" 2>/dev/null) ]]
+    then
+        # transfer new public key
+        cat "${PIBOX_DIR}/${PROVISIONER_PUBLIC_KEY_FILE}" | sudo tee "$(get_mount_point_root)/home/pi/.ssh/authorized_keys"
+    fi
+
+    unmount_root_partition
 }
 
 function configure_memory_split() {
@@ -146,33 +127,27 @@ function configure_hostname() {
 
     if [[ ! -z ${HOSTNAME} ]]
     then
-#        mount_boot_partition
-#
-## TODO : hostnamectl und systemctl sind nicht notwendig, wenn die Dateien bereits vor dem Starten1 in der root-Partition verändert werden
-#        cat >> "${PIBOX_DIR}/next_run.sh" << EOF
-##!/bin/bash
-#if [[ "${HOSTNAME}" != "\$(cat /etc/hostname)" ]]
-#then
-#    echo "${HOSTNAME}" | tee /etc/hostname
-#    sed -i -E 's/^127.0.1.1.*/127.0.1.1\t'"${HOSTNAME}"'/' /etc/hosts
-#    hostnamectl set-hostname "${HOSTNAME}"
-#    systemctl restart avahi-daemon
-#fi
-#EOF
-#
-## TODO : Statische IP reservieren
-#        sudo cp --force "${PIBOX_DIR}/next_run.sh" "$(get_mount_point_boot)/next_run.sh"
-#        sudo chmod +x "$(get_mount_point_boot)/next_run.sh"
-#
-#        rm "${PIBOX_DIR}/next_run.sh"
-#
-#        unmount_boot_partition
-        mount_root_partition
+        mount_boot_partition
 
-        echo "${HOSTNAME}" | sudo tee $(get_mount_point_root)/etc/hostname
-        sudo sed -i -E 's/^127.0.1.1.*/127.0.1.1\t'"${HOSTNAME}"'/' $(get_mount_point_root)/etc/hosts
+# TODO : hostnamectl und systemctl sind nicht notwendig, wenn die Dateien bereits vor dem Starten1 in der root-Partition verändert werden
+        cat >> "${PIBOX_DIR}/next_run.sh" << EOF
+#!/bin/bash
+if [[ "${HOSTNAME}" != "\$(cat /etc/hostname)" ]]
+then
+    echo "${HOSTNAME}" | tee /etc/hostname
+    sed -i -E 's/^127.0.1.1.*/127.0.1.1\t'"${HOSTNAME}"'/' /etc/hosts
+    hostnamectl set-hostname "${HOSTNAME}"
+    systemctl restart avahi-daemon
+fi
+EOF
 
-        unmount_root_partition
+# TODO : Statische IP reservieren
+        sudo cp --force "${PIBOX_DIR}/next_run.sh" "$(get_mount_point_boot)/next_run.sh"
+        sudo chmod +x "$(get_mount_point_boot)/next_run.sh"
+
+        rm "${PIBOX_DIR}/next_run.sh"
+
+        unmount_boot_partition
     fi
 }
 
@@ -282,18 +257,17 @@ pushd "${PIBOX_DIR}" 1>/dev/null
 if [[ ! -f "${RASPBIAN_IMAGE}.img" ]]
 then
     download_images
-    check_depencendies
     prepare_image
 fi
 
-# emulate_rpi1_4_19
-# wait_for_ssh
-# execute_command_over_ssh "sudo ls -la /boot/"
-# execute_command_over_ssh "sudo /boot/next_run.sh"
-# execute_command_over_ssh "sudo rm /boot/next_run.sh"
-# execute_command_over_ssh "sudo /boot/next_run.ssh.sh"
-# execute_command_over_ssh "sudo rm /boot/next_run.ssh.sh"
-# execute_command_over_ssh "sudo shutdown -P 0"
+emulate_rpi1_4_19
+wait_for_ssh
+execute_command_over_ssh "sudo ls -la /boot/"
+execute_command_over_ssh "sudo /boot/next_run.sh"
+execute_command_over_ssh "sudo rm /boot/next_run.sh"
+execute_command_over_ssh "sudo /boot/next_run.ssh.sh"
+execute_command_over_ssh "sudo rm /boot/next_run.ssh.sh"
+execute_command_over_ssh "sudo shutdown -P 0"
 
 popd 1>/dev/null
 
